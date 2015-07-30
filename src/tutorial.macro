@@ -1,8 +1,53 @@
-<p class="center logo">
-![](img/title.png)
-</p>
+// -*- mode: markdown -*-
 
-Charles Strahan (<a class="author" href="https://twitter.com/charlesstrahan">@charlesstrahan</a>)
+// We prefix all our macro variables with a tilde,
+// which makes collisions very unlikely
+
+// Variables:
+#define ~AUTHOR         Charles Strahan
+#define ~AUTHOR_TWITTER charlesstrahan
+#define ~IMAGES         assets/images
+#define ~CSS            assets/css
+#define ~SCRIPTS        assets/scripts
+#define ~LOGO           img/title.png
+
+// Flags:
+#define ~GENDATETIME
+
+// Includes:
+#include macro.cfg
+
+#ifdef ~GENDATETIME
+#ifdef ~HTML
+<script>
+document.getElementById("genDate").innerHTML=__DATE__;
+document.getElementById("genTime").innerHTML=__TIME__;
+</script>
+Generated on <span id="genDate"></span> at <span id="genTime"></span>
+#elif
+Generated on __DATE__ at __TIME__
+#endif
+#endif
+
+#ifdef ~HTML
+#define ~MODE html
+#elif
+#ifdef ~PDF
+#define ~MODE pdf
+#elif
+#ifdef ~EPUB
+#define ~MODE epub
+#elif
+#define ~MODE unknown
+#endif
+#endif
+#endif
+
+Format: ~MODE
+
+<p class="center logo">![](LOGO)</p>
+
+~AUTHOR (<a class="author" href="https://twitter.com/~AUTHOR_TWITTER">@~AUTHOR_TWITTER</a>)
 
 The source for this document is [available
 here](https://github.com/cstrahan/wiwinwln). If there are any errors or
@@ -35,8 +80,7 @@ interfere with your existing package manager or presently installed
 packages[^1].
 
 Installing Nix is trivial:
-
-``` console
+```console
 $ curl https://nixos.org/nix/install | sh
 ```
 
@@ -45,15 +89,14 @@ REPL
 
 Once you have Nix installed, install the `nix-repl` utility:
 
-``` console
+```console
 $ nix-env -iA nix-repl
 ```
 
-The `nix-repl` command line tool provides a convenient
-[REPL](http://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop)
+The `nix-repl` command line tool provides a convenient [REPL][repl]
 environment for learning the Nix expression language. Let's try it out:
 
-``` console
+```console
 $ nix-repl
 Welcome to Nix version 1.8. Type :? for help.
 
@@ -62,7 +105,7 @@ nix-repl> 1 + 2
 ```
 
 Now that you are equipped with the `nix-repl` tool, I encourage you to
-read the [Nix manual](https://nixos.org/nix/manual)'s chapter on
+read the [Nix manual][nix-manual]'s chapter on
 ["Writing Nix Expressions"][writing-nix-expressions], testing out the
 syntax as you read.
 
@@ -73,7 +116,7 @@ This document will use `pkgs` to refer to the result of `import
 <nixpkgs> {}`, which is the set of all standard packages and supporting
 attributes. From `nix-repl`, you can do:
 
-``` console
+```console
 nix-repl> pkgs = import <nixpkgs> {}
 
 nix-repl> pkgs.system
@@ -82,7 +125,7 @@ nix-repl> pkgs.system
 
 Alternatively, you can load all of the attributes into the global scope:
 
-``` console
+```console
 nix-repl> :l <nixpkgs>
 Added 4780 variables.
 
@@ -99,7 +142,7 @@ Common Functions
 Nixpkgs includes a number of incredibly useful functions. I recommend
 first looking at [`pkgs.lib`][pkgs.lib]:
 
-``` console
+```console
 nix-repl> :l <nixpkgs>
 Added 4780 variables.
 
@@ -123,7 +166,7 @@ Dynamically Setting/Getting Attributes
 
 You can dynamically set and get attributes:
 
-``` console
+```console
 nix-repl> rec { attrName = "foo"; ${attrName} = "bar"; }.foo
 "bar"
 
@@ -133,7 +176,7 @@ nix-repl> let attrName = "foo"; in { foo = "bar"; }.${attrName}
 
 You can also use interpolation as usual:
 
-``` console
+```console
 nix-repl> rec { attrName = "foo"; "${attrName}bar" = "baz"; }.foobar
 "baz"
 ```
@@ -145,7 +188,7 @@ The `import` keyword can be used to evaluate an expression residing in a
 derivation. That's sort of a mouthful, so let's look at an example. Save
 the following code as `dynamic.nix`:
 
-``` Nix
+```Nix
 with import <nixpkgs> {};
 let
   file = writeText "demo.nix" ''
@@ -165,7 +208,7 @@ in
 
 Now we'll ask Nix to evaluate the expression:
 
-``` console
+```console
 $ nix-instantiate --eval --read-write-mode dynamic.nix
 building path(s) ‘/nix/store/yjr7mg8a8wpcrvm9mjpskhcip3qa6xvb-demo.nix’
 3
@@ -173,7 +216,7 @@ building path(s) ‘/nix/store/yjr7mg8a8wpcrvm9mjpskhcip3qa6xvb-demo.nix’
 
 We could have just as well generated the Nix expression dynamically:
 
-``` Nix
+```Nix
 with import <nixpkgs> {};
 let
   file = runCommand "demo.nix" {} ''
@@ -193,7 +236,7 @@ in
   evaluated.c
 ```
 
-``` console
+```console
 $ nix-instantiate --eval --read-write-mode dynamic.nix
 building path(s) ‘/nix/store/0hnis8bgscqqv2wxnypwmpf8dmbn30v4-demo.nix’
 3
@@ -212,7 +255,7 @@ cyclic or doubly linked lists would be impossible. However, this is not
 the case: laziness allows for such definitions, and the procedure of
 doing so is called *tying the knot*. Let's look at an example:
 
-``` console
+```console
 nix-repl> let attrs = { a = attrs; b = 42; }; in attrs
 { a = { ... }; b = 42; }
 
@@ -232,7 +275,7 @@ because it realizes that `attrs` is infinitely recursive.
 Lets abstract this pattern into a new function called
 [`fix`](http://en.wikipedia.org/wiki/Fixed-point_combinator):
 
-``` console
+```console
 nix-repl> fix = f: let x = f x; in x
 ```
 
@@ -243,7 +286,7 @@ most imperative languages, you can't pass a value as an argument without
 having first evaluated that argument; not so with Nix! Let's rewrite the
 last example using `fix`:
 
-``` console
+```console
 nix-repl> fix (attrs: { a = attrs; b = 42; })
 { a = { ... }; b = 42; }
 
@@ -256,7 +299,7 @@ as though `f` were [eating its own tail][ouroboros]!
 
 Let's now use `fix` to simulate the `rec` keyword:
 
-``` console
+```console
 nix-repl> fix (attrs: with attrs; { a = b*2; b = c*-1; c = 42; })
 { a = -84; b = -42; c = 42; }
 ```
@@ -295,7 +338,7 @@ development environments. Let's look at some examples, shall we?
 
 Running a single command:
 
-``` console
+```console
 $ nix-shell --pure -p python --command "which python"
 /nix/store/1sj48dia82dn7r77sg2rdy3mq47da400-python-2.7.9/bin/python
 ```
@@ -308,7 +351,7 @@ The `-p` argument allows you to refer to a package by attribute name.
 Behind the scenes, `nix-shell` is actually evaluating the following
 expression (assuming you used `-p python`):
 
-``` Nix
+```Nix
 with import <nixpkgs> {}; python
 ```
 
@@ -316,7 +359,7 @@ You can therefore use any arbitrary Nix expression, so long as it
 evaluates to a derivation (note that you *must* parenthesize the
 expression if it contains a space):
 
-``` console
+```console
 $ nix-shell -p "(ruby.override { cursesSupport = false; })" --command "which ruby"
 /nix/store/vlcvlmxripr5c8vg6nhsmml68jiivzh3-ruby-1.9.3-p547/bin/ruby
 
@@ -326,7 +369,7 @@ $ nix-shell -p "(ruby.override { cursesSupport = true; })" --command "which ruby
 
 In addition to running one-off commands, you can also work within a new shell:
 
-``` console
+```console
 $ nix-shell -p python
 
 [nix-shell:~]$ echo "hello from a new shell! python is $(which python)"
@@ -336,7 +379,7 @@ hello from a new shell! python is /nix/store/1sj48dia82dn7r77sg2rdy3mq47da400-py
 We can also pass `nix-shell` an expression on the command line, in
 which case you'll be given the build environment for that derivation:
 
-``` console
+```console
 $ nix-shell -E "with import <nixpkgs> {}; hello"
 
 [nix-shell:~]$ which hello
@@ -358,7 +401,7 @@ development and you want to link to [Cap'n
 Proto](https://capnproto.org/) - how will your build tools know where to
 find `libcapnp.so`? Let's take a look:
 
-``` console
+```console
 $ nix-shell --pure -p capnproto -p pkgconfig
 
 [nix-shell:~]$ echo $PKG_CONFIG_PATH
@@ -382,7 +425,7 @@ triggered, and now our build tools can find the necessary flags.
 `nix-shell` also supports reading expressions from files via `nix-shell
 some-file.nix`. The behavior is identical to:
 
-``` console
+```console
 $ nix-shell -E "$(cat some-file.nix)"
 ```
 
@@ -395,7 +438,7 @@ If `nix-shell` is run without any arguments, it will attempt to evaluate
 derivation in `shell.nix` to create per-project development
 environments:
 
-``` Nix
+```Nix
 # Save this as shell.nix
 with import <nixpkgs> {};
 runCommand "dummy" {
@@ -417,7 +460,7 @@ runCommand "dummy" {
    #     since nix-shell won't try to build this package.
 ```
 
-``` console
+```console
 $ nix-shell
 Hey look, we're doing some setup stuff!
 
@@ -432,11 +475,35 @@ Using `nix-shell` and `shell.nix`, we can create very reusable,
 deterministic development environments - no more "works on my machine"
 scenarios. Pretty slick, huh?
 
+Miscellany
+----------
+
+# Still working on this section
+
+One useful function I added to my shell after using NixOS for a while
+is the following:
+
+In bash syntax:
+```shell
+add-usage () { export USAGE="${USAGE}\n${1}"; }
+
+nix-evaluate () {
+    add-usage "Usage:   nix-evaluate <quoted-nix-expression>"
+    add-usage "Example: nix-evaluate 'with builtins; concatLists [ [1] [2 3] [4 5 6] ]'"
+    if [ $# -ne 1 ]; then display-usage; return -1; fi
+    
+    nix-instantiate --eval -E "$1" || return $?
+    
+    unset USAGE
+    return 0
+}
+# builtins.parseDrvName
+```
+
 [buildEnv]: https://github.com/NixOS/nixpkgs/blob/1aed33f68b055180d0d52ff04699b0ca0ab05257/pkgs/top-level/all-packages.nix#L260
 [fetchers]: https://github.com/NixOS/nixpkgs/blob/1aed33f68b055180d0d52ff04699b0ca0ab05257/pkgs/top-level/all-packages.nix#L309-324
 [runCommand]: https://github.com/NixOS/nixpkgs/blob/1aed33f68b055180d0d52ff04699b0ca0ab05257/pkgs/build-support/trivial-builders.nix#L8
 [writeTextFile]: https://github.com/NixOS/nixpkgs/blob/1aed33f68b055180d0d52ff04699b0ca0ab05257/pkgs/build-support/trivial-builders.nix#L15
-
 
 [pkgconfig]: https://github.com/NixOS/nixpkgs/blob/1aed33f68b055180d0d52ff04699b0ca0ab05257/pkgs/development/tools/misc/pkgconfig/default.nix
 [pkgconfig-envHook]: https://github.com/NixOS/nixpkgs/blob/1aed33f68b055180d0d52ff04699b0ca0ab05257/pkgs/development/tools/misc/pkgconfig/setup-hook.sh
@@ -448,7 +515,13 @@ scenarios. Pretty slick, huh?
 [environment.systemPackages]: http://nixos.org/nixos/manual/ch-options.html#opt-environment.systemPackages
 [nix-shell]: http://nixos.org/nix/manual/#sec-nix-shell
 [ouroboros]: http://en.wikipedia.org/wiki/Ouroboros
-[writing-nix-expressions]: http://nixos.org/nix/manual/#chap-writing-nix-expressions),
+[writing-nix-expressions]: http://nixos.org/nix/manual/#chap-writing-nix-expressions
+
+[repl]: http://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop
+
+[nix-manual]: https://nixos.org/nix/manual
+[nixos-manual]: https://nixos.org/nixos/manual
+[nixpkgs-manual]: https://hydra.nixos.org/job/nixpkgs/trunk/manual/latest/download-by-type/doc/manual
 
 
 [^1]: Nix only touches files under its own prefix (`/nix/store`), so
