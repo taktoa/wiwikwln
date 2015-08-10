@@ -1,71 +1,69 @@
-% What I Wish I'd Known When Learning Nix
-% Charles Strahan; Remy Goldschmidt
-%
-<!---
-[comment]: -*- mode: markdown -*-
-[comment]: What I Wish I Knew When Learning Nix - src/tutorial.macro
+// -*- mode: markdown -*-
+// What I Wish I Knew When Learning Nix - manual.en.macro
+//
+// The guide, in English Markdown with C preprocessor directives
+//
+// Written in 2015 by Charles Strahan <charles.c.strahan@gmail.com>
 
-[comment]: The guide, in English Markdown, with C preprocessor directives
+// To the extent possible under law, the author(s) have dedicated all
+// copyright and related and neighboring rights to this software to the
+// public domain worldwide. This software is distributed without any
+// warranty.  You should have received a copy of the CC0 Public Domain
+// Dedication along with this software. If not, see
+// <http://creativecommons.org/publicdomain/zero/1.0/>.
 
-[comment]: Written in 2015 by Charles Strahan <charles.c.strahan@gmail.com>
+// Note that macroconfig.en is #included in this file by cpphs
 
-[comment]: To the extent possible under law, the author(s) have dedicated all
-[comment]: copyright and related and neighboring rights to this software to the
-[comment]: public domain worldwide. This software is distributed without any
-[comment]: warranty.  You should have received a copy of the CC0 Public Domain
-[comment]: Dedication along with this software. If not, see
-[comment]: <http://creativecommons.org/publicdomain/zero/1.0/>.
+// We prefix all our macro variables with a tilde
+// which makes collisions very unlikely
 
-[comment]: Note that macroconfig is #included in this file by cpphs
+// Variables:
+#define ~AUTHOR         Charles Strahan
+#define ~AUTHOR_TWITTER charlesstrahan
+#define ~IMAGES         assets/images
+#define ~CSS            assets/css
+#define ~SCRIPTS        assets/scripts
+#define ~LOGO           img/title.png
 
-[comment]: Variables:
-#define AUTHOR        Charles Strahan
-#define AUTHORTWITTER charlesstrahan
-#define IMAGES        assets/images
-#define LOGO          IMAGES/title.png
+// Flags:
+#define ~GENDATETIME
 
-[comment]: Flags:
-#define GENINFO
--->
-
-
-<p class="center logo">![](LOGO)</p>
-
-AUTHOR (<a class="author" href="https://twitter.com/AUTHORTWITTER">@AUTHORTWITTER</a>)
-
---------------------------------------------------------------------------------
-
-#ifdef GENINFO
-Info
-----
-
-Generated
-on <input disabled="true" size="7" value=__DATE__/>
-at <input disabled="true" size="5" value=__TIME__/>
-
-#ifdef HTML
-# define MODE html
-#else
-# ifdef PDF
-#  define MODE pdf
+#ifdef ~GENDATETIME
+# ifdef ~HTML
+<script>
+document.getElementById("genDate").innerHTML=__DATE__;
+document.getElementById("genTime").innerHTML=__TIME__;
+</script>
+Generated on <span id="genDate"></span> at <span id="genTime"></span>
 # else
-#  ifdef EPUB
-#   define MODE epub
+Generated on __DATE__ at __TIME__
+# endif
+#endif
+
+#ifdef ~HTML
+# define ~MODE html
+#else
+# ifdef ~PDF
+#  define ~MODE pdf
+# else
+#  ifdef ~EPUB
+#   define ~MODE epub
 #  else
-#   define MODE unknown
+#   define ~MODE unknown
 #  endif
 # endif
 #endif
 
-Generated format: MODE
-#endif
+Format: ~MODE
 
---------------------------------------------------------------------------------
+<p class="center logo">![](LOGO)</p>
 
+~AUTHOR (<a class="author" href="https://twitter.com/~AUTHOR_TWITTER">@~AUTHOR_TWITTER</a>)
 
-The source for this document is [available here][wiwikwln-github].
-If there are any errors or you think of a more illustrative example
-feel free to submit a pull request on Github.
+The source for this document is [available
+here](https://github.com/cstrahan/wiwinwln). If there are any errors or
+you think of a more illustrative example feel free to submit a pull
+request on Github.
 
 This is the first draft of this document.
 
@@ -81,11 +79,11 @@ Basics
 Installation
 ------------
 
-If you don't have the [Nix package manager][nix] yet,
+If you don't have the [Nix package manager](http://nixos.org/nix/) yet,
 I suggest that you do one of the following:
 
 - Try out Nix from the comfort of one of the official [NixOS VirtualBox
-  Appliances][appliance], or
+  Appliances](http://nixos.org/nixos/download.html), or
 - Install Nix directly
 
 Should you choose the latter, you can rest assured that Nix won't
@@ -100,18 +98,13 @@ $ curl https://nixos.org/nix/install | sh
 REPL
 ----
 
-This is a test of the math features of pandoc: $E = m c^2$
-
-
-$$\int^b_a \frac{3 x^3 - 4 x^2}{\sin{\gamma}}$$
-
 Once you have Nix installed, install the `nix-repl` utility:
 
 ```console
 $ nix-env -iA nix-repl
 ```
 
-The `nix-repl` command line tool provides a convenient [REPL][wiki-repl]
+The `nix-repl` command line tool provides a convenient [REPL][repl]
 environment for learning the Nix expression language. Let's try it out:
 
 ```console
@@ -176,8 +169,7 @@ other functions worth keeping in mind:
   pointing at their originating store path. (This is how profiles work.)
 - [fetchurl, fetchzip, fetchgit, ...][fetchers]: Fetch a source package.
 - [runCommand][runCommand]: Create a derivation from a shell command.
-- [writeTextFile][writeTextFile]: Create a single file. Take a look
-  around `trivial-builders.nix` for similar functions.
+- [writeTextFile][writeTextFile]: Create a single file. Take a look around `trivial-builders.nix` for similar functions.
 
 
 Dynamically Setting/Getting Attributes
@@ -314,7 +306,7 @@ nix-repl> (fix (attrs: { a = attrs; b = 42; })).a.a.a.a.b
 ```
 
 We give `fix` a function `f`, and `fix` gives `f` its own output. It's
-as though `f` were [eating its own tail][wiki-ouroboros]!
+as though `f` were [eating its own tail][ouroboros]!
 
 Let's now use `fix` to simulate the `rec` keyword:
 
@@ -497,98 +489,52 @@ scenarios. Pretty slick, huh?
 Miscellany
 ----------
 
-### Still working on this section
+# Still working on this section
 
 One useful function I added to my shell after using NixOS for a while
 is the following:
 
 In bash syntax:
-```console
+```shell
 add-usage () { export USAGE="${USAGE}\n${1}"; }
 
 nix-evaluate () {
     add-usage "Usage:   nix-evaluate <quoted-nix-expression>"
-    add-usage "Example: nix-evaluate 'with builtins; concatLists [[1] [2 3]]'"
+    add-usage "Example: nix-evaluate 'with builtins; concatLists [ [1] [2 3] [4 5 6] ]'"
     if [ $# -ne 1 ]; then display-usage; return -1; fi
-
+    
     nix-instantiate --eval -E "$1" || return $?
-
+    
     unset USAGE
     return 0
 }
 # builtins.parseDrvName
 ```
 
---------------------------------------------------------------------------------
+[buildEnv]: https://github.com/NixOS/nixpkgs/blob/1aed33f68b055180d0d52ff04699b0ca0ab05257/pkgs/top-level/all-packages.nix#L260
+[fetchers]: https://github.com/NixOS/nixpkgs/blob/1aed33f68b055180d0d52ff04699b0ca0ab05257/pkgs/top-level/all-packages.nix#L309-324
+[runCommand]: https://github.com/NixOS/nixpkgs/blob/1aed33f68b055180d0d52ff04699b0ca0ab05257/pkgs/build-support/trivial-builders.nix#L8
+[writeTextFile]: https://github.com/NixOS/nixpkgs/blob/1aed33f68b055180d0d52ff04699b0ca0ab05257/pkgs/build-support/trivial-builders.nix#L15
 
-[comment]: gh = github
-[comment]: nm = nix manual, nom = nixos manual, npm = nixpkgs manual
+[pkgconfig]: https://github.com/NixOS/nixpkgs/blob/1aed33f68b055180d0d52ff04699b0ca0ab05257/pkgs/development/tools/misc/pkgconfig/default.nix
+[pkgconfig-envHook]: https://github.com/NixOS/nixpkgs/blob/1aed33f68b055180d0d52ff04699b0ca0ab05257/pkgs/development/tools/misc/pkgconfig/setup-hook.sh
+[nixpkgs]: https://github.com/NixOS/nixpkgs
+[modularity]: http://nixos.org/nixos/manual/sec-configuration-syntax.html#sec-modularity
+[builtins]: http://nixos.org/nix/manual/#ssec-builtins
+[pkgs.lib]: https://github.com/NixOS/nixpkgs/blob/master/lib/default.nix
+[pkgs.lib]: https://github.com/NixOS/nixpkgs/blob/master/lib/default.nix
+[environment.systemPackages]: http://nixos.org/nixos/manual/ch-options.html#opt-environment.systemPackages
+[nix-shell]: http://nixos.org/nix/manual/#sec-nix-shell
+[ouroboros]: http://en.wikipedia.org/wiki/Ouroboros
+[writing-nix-expressions]: http://nixos.org/nix/manual/#chap-writing-nix-expressions
 
-[gh-nix]:                     https://github.com/NixOS/nix
-[gh-nixos]:                   https://github.com/NixOS/nixpkgs
-[gh-nixpkgs]:                 https://github.com/NixOS/nixpkgs
+[repl]: http://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop
 
-[gh-hydra]:                   https://github.com/NixOS/hydra
-[gh-nixops]:                  https://github.com/NixOS/nixops
+[nix-manual]: https://nixos.org/nix/manual
+[nixos-manual]: https://nixos.org/nixos/manual
+[nixpkgs-manual]: https://hydra.nixos.org/job/nixpkgs/trunk/manual/latest/download-by-type/doc/manual
 
-[gh-patchelf]:                https://github.com/NixOS/patchelf
 
-[gh-cabal2nix]:               https://github.com/NixOS/cabal2nix
-[gh-mvn2nix]:                 https://github.com/NixOS/mvn2nix-maven-plugin
-[gh-npm2nix]:                 https://github.com/NixOS/npm2nix
-
-[nix-manual]:                 https://nixos.org/nix/manual
-[nixos-manual]:               https://nixos.org/nixos/manual
-[nixpkgs-manual]:             https://nixos.org/nixpkgs/manual
-
-[nix-website]:                https://nixos.org/nix
-[nixos-website]:              https://nixos.org/nixos
-[nixpkgs-website]:            https://nixos.org/nixpkgs
-
-[nix-download]:               https://nixos.org/nix/download.html
-[nixos-download]:             https://nixos.org/nixos/download.html
-[nixpkgs-download]:           https://nixos.org/nixpkgs/download.html
-
-[gh-buildEnv]:                https://github.com/NixOS/nixpkgs/blob/master/pkgs/top-level/all-packages.nix#L260
-[gh-fetchers]:                https://github.com/NixOS/nixpkgs/blob/master/pkgs/top-level/all-packages.nix#L309-324
-[gh-runCommand]:              https://github.com/NixOS/nixpkgs/blob/master/pkgs/build-support/trivial-builders.nix#L8
-[gh-writeTextFile]:           https://github.com/NixOS/nixpkgs/blob/master/pkgs/build-support/trivial-builders.nix#L15
-[gh-pkgconfig]:               https://github.com/NixOS/nixpkgs/blob/master/pkgs/development/tools/misc/pkgconfig/default.nix
-[gh-pkgconfig-envHook]:       https://github.com/NixOS/nixpkgs/blob/master/pkgs/development/tools/misc/pkgconfig/setup-hook.sh
-[gh-pkgs-lib]:                https://github.com/NixOS/nixpkgs/blob/master/lib/default.nix
-[gh-pkgs-lib]:                https://github.com/NixOS/nixpkgs/blob/master/lib/default.nix
-
-[nom-systemPackages]:         https://nixos.org/nixos/manual/ch-options.html#opt-environment.systemPackages
-[nom-modularity]:             https://nixos.org/nixos/manual/sec-configuration-syntax.html#sec-modularity
-
-[nm-builtins]:                https://nixos.org/nix/manual/#ssec-builtins
-[nm-writing-nix-expressions]: https://nixos.org/nix/manual/#chap-writing-nix-expressions
-[nm-nix-shell]:               https://nixos.org/nix/manual/#sec-nix-shell
-
-[nix-pill-1]:                 http://lethalman.blogspot.com/2014/07/nix-pill-1-why-you-should-give-it-try.html
-[nix-pill-2]:                 http://lethalman.blogspot.com/2014/07/nix-pill-2-install-on-your-running.html
-[nix-pill-3]:                 http://lethalman.blogspot.com/2014/07/nix-pill-3-enter-environment.html
-[nix-pill-4]:                 http://lethalman.blogspot.com/2014/07/nix-pill-4-basics-of-language.html
-[nix-pill-5]:                 http://lethalman.blogspot.com/2014/07/nix-pill-5-functions-and-imports.html
-[nix-pill-6]:                 http://lethalman.blogspot.com/2014/07/nix-pill-6-our-first-derivation.html
-[nix-pill-7]:                 http://lethalman.blogspot.com/2014/07/nix-pill-7-working-derivation.html
-[nix-pill-8]:                 http://lethalman.blogspot.com/2014/08/nix-pill-8-generic-builders.html
-[nix-pill-9]:                 http://lethalman.blogspot.com/2014/08/nix-pill-9-automatic-runtime.html
-[nix-pill-10]:                http://lethalman.blogspot.com/2014/08/nix-pill-10-developing-with-nix-shell.html
-[nix-pill-11]:                http://lethalman.blogspot.com/2014/08/nix-pill-11-garbage-collector.html
-[nix-pill-12]:                http://lethalman.blogspot.com/2014/08/nix-pill-12-inputs-design-pattern.html
-[nix-pill-13]:                http://lethalman.blogspot.com/2014/09/nix-pill-13-callpackage-design-pattern.html
-[nix-pill-14]:                http://lethalman.blogspot.com/2014/09/nix-pill-14-override-design-pattern.html
-[nix-pill-15]:                http://lethalman.blogspot.com/2014/09/nix-pill-15-nix-search-paths.html
-[nix-pill-16]:                http://lethalman.blogspot.com/2014/11/nix-pill-16-nixpkgs-parameters.html
-[nix-pill-17]:                http://lethalman.blogspot.com/2014/11/nix-pill-17-nixpkgs-overriding-packages.html
-[nix-pill-18]:                http://lethalman.blogspot.com/2015/01/nix-pill-18-nix-store-paths.html
-
-[wiki-ouroboros]:             https://en.wikipedia.org/wiki/Ouroboros
-[wiki-repl]:                  https://en.wikipedia.org/wiki/Read–eval–print_loop
-
-[wiwikwln-github]:            https://github.com/cstrahan/wiwinwln
-
-[^1]: Nix only touches files under its own prefix (`/nix/store`), so as far as
-      the rest of your system is concerned, it doesn't even exist. Uninstalling
-      is as easy as `rm -rf /nix`.
+[^1]: Nix only touches files under its own prefix (`/nix/store`), so
+  as far as the rest of your system is concerned, it doesn't even exist.
+  Uninstalling is as easy as `rm -rf /nix`.

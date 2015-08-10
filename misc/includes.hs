@@ -36,8 +36,6 @@ appHTML    = walkM doHTML
 -- Main function
 main :: IO ()
 main = do
-  putStrLn "Hello world!"
-  putStrLn "Hello world!"
   errPandoc <- appHTML =<< appInclude =<< (readMarkdown def <$> getContents)
   case errPandoc of
     Left  err    -> error ("Error in pandoc!" ++ "\n" ++ show err)
